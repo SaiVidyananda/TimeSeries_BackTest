@@ -1,0 +1,52 @@
+name: Pylint Check and Auto-Merge
+
+on:
+  push:
+    branches:
+      - "feature/**"
+
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pylint and save score
+        id: pylint
+        run: |
+          SCORE=$(pylint your_code.py --score=y | grep 'Your code has been rated at' | awk '{print $7}' | cut -d'/' -f1)
+          echo "Pylint Score: $SCORE"
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+
+      - name: Check score threshold
+        run: |
+          SCORE=${{ steps.pylint.outputs.score }}
+          THRESHOLD=8.0
+          if (( $(echo "$SCORE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Pylint score ($SCORE) below threshold ($THRESHOLD)"
+            exit 1
+          else
+            echo "✅ Pylint score ($SCORE) meets threshold ($THRESHOLD)"
+          fi
+
+      - name: Merge to main
+        if: ${{ success() }}
+        uses: devops-infra/action-pull-request@v0.5.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${{ github.ref_name }}
+          target_branch: main
+          title: "Auto-merge from ${{ github.ref_name }} after passing pylint"
+          body: "This PR was auto-generated and merged after passing pylint check."
+          auto_merge: true
