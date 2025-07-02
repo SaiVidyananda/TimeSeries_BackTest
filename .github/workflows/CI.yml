@@ -27,7 +27,7 @@ jobs:
       - name: Run pylint and extract score
         id: pylint
         run: |
-          OUTPUT=$(pylint $(find . -type f -name "*.py") || true)
+          OUTPUT=$(pylint $(find ./src -type f -name "*.py") || true)
           echo "$OUTPUT"
           SCORE=$(echo "$OUTPUT" | grep 'Your code has been rated at' | tail -1 | awk '{print $7}' | cut -d'/' -f1)
           echo "Pylint Score: $SCORE"
