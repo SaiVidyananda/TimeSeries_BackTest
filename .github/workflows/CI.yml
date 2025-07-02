@@ -79,8 +79,14 @@ jobs:
       - name: Set target branch
         id: find-target-branch
         run: echo "branch=main" >> $GITHUB_OUTPUT
+      - name: Check for diff with main
+        id: check-diff
+        run: |
+          git fetch origin main
+          git diff origin/main...HEAD --quiet && echo "skip=true" >> $GITHUB_OUTPUT || echo "skip=false" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
+        if: steps.check-diff.outputs.skip == 'false'
         run: |
           if ! gh pr create \
             --base '${{ steps.find-target-branch.outputs.branch }}' \
