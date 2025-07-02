@@ -80,12 +80,14 @@ jobs:
 
       - name: Create Pull Request
         run: |
-          gh pr create \
+          if ! gh pr create \
             --base '${{ steps.find-target-branch.outputs.branch }}' \
             --head '${{ github.ref_name }}' \
             --title "[Automated] Merge ${{ github.ref_name }} into ${{ steps.find-target-branch.outputs.branch }}" \
-            --body '✅ Automated PR: Pylint score passed threshold. Please review and merge.' \
-            || true
+            --body '✅ Automated PR: Pylint score passed threshold. Please review and merge.'; then
+              echo "❌ Failed to create pull request"
+              exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
