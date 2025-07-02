@@ -1,4 +1,6 @@
-name: Lint and Auto PR to Main
+
+name: Pylint Check and Auto-Merge
+
 
 on:
   push:
@@ -23,6 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
 
       - name: Run pylint and extract score
         id: pylint
@@ -64,3 +67,4 @@ jobs:
             || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
