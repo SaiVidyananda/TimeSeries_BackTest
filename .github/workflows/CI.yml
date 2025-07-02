@@ -1,6 +1,4 @@
-
 name: Pylint Check and Auto-Merge
-
 
 on:
   push:
@@ -8,9 +6,11 @@ on:
       - "feature/**"
 
 jobs:
-  lint-and-pr:
-    name: Run Pylint and Create Auto-PR
+  linting:
+    name: Run Pylint and Score Check
     runs-on: ubuntu-latest
+    outputs:
+      score: ${{ steps.pylint.outputs.score }}
 
     steps:
       - name: Checkout code
@@ -26,7 +26,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-
       - name: Run pylint and extract score
         id: pylint
         run: |
@@ -37,25 +36,47 @@ jobs:
           echo "score=$SCORE" >> $GITHUB_OUTPUT
 
       - name: Check if score is good
-        id: check-score
         run: |
           SCORE=${{ steps.pylint.outputs.score }}
           THRESHOLD=8.0
           echo "Checking if $SCORE >= $THRESHOLD"
           if (( $(echo "$SCORE < $THRESHOLD" | bc -l) )); then
-            echo "❌ Pylint score $SCORE is below $THRESHOLD"
+            echo "❌ Pylint score $SCORE is below threshold $THRESHOLD"
             exit 1
           else
-            echo "✅ Pylint score $SCORE meets threshold"
+            echo "✅ Pylint score $SCORE is acceptable"
           fi
+
+  prcreation:
+    name: Create PR into Main
+    needs: linting
+    if: ${{ needs.linting.outputs.score && success() }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main into current feature branch
+        run: |
+          git fetch origin main
+          git merge origin/main --no-edit || { echo "❌ Merge conflict with main"; exit 1; }
 
       - name: Install GitHub CLI
         run: |
+          sudo apt-get update
           sudo apt-get install gh -y
 
       - name: Set target branch
         id: find-target-branch
-        run: echo "branch=main" >> $GITHUB_OUTPUT  # Or use dynamic logic
+        run: echo "branch=main" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         run: |
@@ -64,7 +85,15 @@ jobs:
             --head '${{ github.ref_name }}' \
             --title "[Automated] Merge ${{ github.ref_name }} into ${{ steps.find-target-branch.outputs.branch }}" \
             --body '✅ Automated PR: Pylint score passed threshold. Please review and merge.' \
+            --label 'auto-pr' \
             || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Auto-Merge PR
+        run: |
+          PR_URL=$(gh pr view --json url -q ".url")
+          echo "Attempting auto-merge for $PR_URL"
+          gh pr merge --squash --auto || echo "⚠️ Auto-merge skipped (check protection rules or conflicts)."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
