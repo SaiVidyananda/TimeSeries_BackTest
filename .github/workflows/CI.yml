@@ -11,6 +11,8 @@ jobs:
   linting:
     name: Run Pylint and Create Auto-PR
     runs-on: ubuntu-latest
+    outputs:
+      score: ${{ steps.pylint.outputs.score }}
 
     steps:
       - name: Checkout code
