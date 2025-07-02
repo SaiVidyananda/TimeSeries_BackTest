@@ -85,7 +85,6 @@ jobs:
             --head '${{ github.ref_name }}' \
             --title "[Automated] Merge ${{ github.ref_name }} into ${{ steps.find-target-branch.outputs.branch }}" \
             --body '✅ Automated PR: Pylint score passed threshold. Please review and merge.' \
-            --label 'auto-pr' \
             || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
