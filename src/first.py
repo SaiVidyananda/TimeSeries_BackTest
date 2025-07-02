@@ -1,6 +1,6 @@
 """This module demonstrates a simple add_numbers function with type hints."""
 def add_numbers(a: int, b: int) -> int:
-    """Add two integers and return the result. s"""
+    """Add two integers and return the result. """
     return a + b
 
 def main():
