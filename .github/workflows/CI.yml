@@ -90,10 +90,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-Merge PR
-        run: |
-          PR_URL=$(gh pr view --json url -q ".url")
-          echo "Attempting auto-merge for $PR_URL"
-          gh pr merge --squash --auto || echo "⚠️ Auto-merge skipped (check protection rules or conflicts)."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
