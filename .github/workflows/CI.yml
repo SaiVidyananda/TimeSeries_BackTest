@@ -48,6 +48,24 @@ jobs:
           else
             echo "✅ Pylint score $SCORE is acceptable"
           fi
+          
+      - name: Run tests with coverage
+        id: coverage
+        run: |
+          pytest --cov=src --cov-report=term --cov-report=xml
+          COVERAGE=$(coverage report | grep TOTAL | awk '{print $4}' | sed 's/%//')
+          echo "Coverage is $COVERAGE%"
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+
+      - name: Check coverage threshold
+        run: |
+          THRESHOLD=80
+          COVERAGE=${{ steps.coverage.outputs.coverage }}
+          echo "Checking if $COVERAGE >= $THRESHOLD"
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Code coverage $COVERAGE is below threshold"
+            exit 1
+          fi
 
   prcreation:
     name: Create PR into Main
