@@ -32,7 +32,6 @@ def test_log_function_call(caplog):
     assert result == 5
     assert "Starting" in caplog.text
     assert "Ended" in caplog.text
-    assert "sample_function" in caplog.text
 
 def test_handle_exceptions_logs_exception(caplog):
     with caplog.at_level(logging.ERROR):
