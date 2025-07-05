@@ -26,20 +26,16 @@ class PortfolioValuator:
         Raises:
             ValueError: If any ticker does not have a price for the given date.
         """
-        logger.info("Computing portfolio value for date: %s", date)
+        logger.debug("Computing portfolio value for date: %s", date)
         portfolio = self.transaction_manager.get_portfolio()
-        print(f"Portfolio on {date}:\n{portfolio}")
         if portfolio is None or portfolio.empty:
-            logger.warning("Portfolio is empty. Cannot compute value.")
             return 0.0
         portfolio['close_price'] = portfolio['ticker'].apply(lambda x: self.price_provider(x, date))
         if portfolio['close_price'].isnull().any():
-            logger.warning("Some tickers do not have prices for %s. Skipping valuation.", date)
             raise ValueError("Some tickers do not have prices for the given date.")
         portfolio["value"] = portfolio["quantity"] * portfolio["close_price"]
 
         total_value = portfolio["value"].sum()
-        logger.info("Total portfolio value on %s: ₹%.2f", date, total_value)
         return total_value
     
     def get_portfolio(self):

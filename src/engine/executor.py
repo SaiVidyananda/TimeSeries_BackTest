@@ -5,7 +5,7 @@ It manages the execution of buy and sell signals, updates the portfolio, and log
 
 import pandas as pd
 
-from src.utils.log_helper import handle_exceptions, log_function_call, logger
+from src.utils.log_helper import handle_exceptions, log_function_call
 
 
 class Executor:
@@ -20,48 +20,39 @@ class Executor:
         self.snapshot_value = initial_cash  # Initial cash value for the portfolio
         self.daily_log = []  # stores P&L, cash, value
 
+
     def _sell_executor(self, sell_signals, date):
         # SELL
         for signal in sell_signals:
             ticker = signal["ticker"]
             price = signal["price"]
-
             if "quantity" in signal and signal["quantity"] is not None:
                 quantity = signal["quantity"]
             else:
-                quantity = self.position_sizer.calculate_quantity_to_sell(ticker)
-
+                quantity = self.tm.portfolio.get(ticker, {}).get("quantity", 0)
             if quantity <= 0:
-                logger.info("Skipping sell: %s (nothing to sell)", ticker)
                 continue
+            self.tm.sell(ticker, quantity, price, date)
+            self.cash += quantity * price
+            
 
-            try:
-                self.tm.sell(ticker, quantity, price, date)
-                self.cash += quantity * price
-            except Exception as e:
-                logger.warning("Sell failed: %s", e)
 
     def _buy_executor(self, buy_signals, date, snapshot_value):
         """Executes buy orders based on the provided signals."""
         for signal in buy_signals:
             ticker = signal["ticker"]
             price = signal["price"]
-
             if "quantity" in signal and signal["quantity"] is not None:
                 quantity = signal["quantity"]
             else:
-                quantity = self.position_sizer.fixed_amount_sizing(ticker, price, snapshot_value/(20*10), self.cash)
+                quantity = self.position_sizer.fixed_amount_sizing(ticker, price, snapshot_value/(20*8), self.cash)
             if quantity is None or quantity <= 0:
-                quantity = 1
-            if price * quantity > self.cash:
-                logger.info("Skipping buy: %s (insufficient cash)", ticker)
                 continue
-
-            try:
-                self.tm.buy(ticker, quantity, price, date)
-                self.cash -= quantity * price
-            except Exception as e:
-                logger.warning("Buy failed: %s", e)
+            if price * quantity > self.cash:
+                continue
+            self.tm.buy(ticker, quantity, price, date)
+            self.cash -= quantity * price
+            
     
     @log_function_call
     @handle_exceptions
@@ -75,9 +66,8 @@ class Executor:
             pd.DataFrame: DataFrame containing daily logs with cash, holdings value, and total value.
         """
         for date in date_range:
-            logger.info("Running strategy for %s", date)
             # 1. Get signals
-            buy_signals, sell_signals = self.strategy_func(date)
+            buy_signals, sell_signals = self.strategy_func(self.tm, date)
             # 2. Execute sell orders first
             self._sell_executor(sell_signals, date)
             # 3. Then execute buy orders

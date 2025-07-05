@@ -5,6 +5,8 @@ and sells them based on specific conditions related to price movements and holdi
 """
 import pandas as pd
 
+from src.utils.log_helper import handle_exceptions, log_function_call, logger
+
 
 class FlipStrategy:
     """
@@ -13,14 +15,18 @@ class FlipStrategy:
     """
     def __init__(self, price_df: pd.DataFrame):
         self.price_df = price_df.sort_values(["ticker", "date"])
-        self.holdings = {}  # ticker -> dict with buy_date, buy_price, peak_price
 
-    def get_signals(self, date: str):
+    
+    @log_function_call
+    @handle_exceptions
+    def get_signals(self, tm, date: str):
         buy_signals = []
         sell_signals = []
+        
 
         date_data = self.price_df[self.price_df["date"] == date]
-
+        logger.info(f"Processing date: {date}")
+        logger.debug(f"Date data: {date_data}")
         for _, row in date_data.iterrows():
             ticker = row["ticker"]
             price = row["close"]
@@ -30,25 +36,22 @@ class FlipStrategy:
             #if ticker not in self.holdings:
             if price < sma_50 * 0.96:
                 buy_signals.append({"ticker": ticker, "price": price})
-                self.holdings[ticker] = {
-                    "buy_date": date,
-                    "buy_price": price,
-                    "peak_price": price,
-                    "days_held": 0
-                }
-
-            # --- SELL ---
-            elif ticker in self.holdings:
-                holding = self.holdings[ticker]
-                holding["days_held"] += 1
-                holding["peak_price"] = max(holding["peak_price"], price)
-
-                stop_loss_price = holding["peak_price"] * 0.97
-
-                tlsl_hit = holding["days_held"] > 60 and price < stop_loss_price
-
-                if price > sma_50 * 1.12 or tlsl_hit or holding["days_held"] >= 150:
+            elif price > sma_50 * 1.12:
+                sell_signals.append({"ticker": ticker, "price": price})
+            else:
+                if self.sl_check(tm, ticker, price):
                     sell_signals.append({"ticker": ticker, "price": price})
-                    del self.holdings[ticker]
 
         return buy_signals, sell_signals
+    
+    def sl_check(self, tm, ticker: str, price: float) -> bool:
+        """Check if the stop-loss condition is met for a given ticker."""
+        holding = tm.get_portfolio_dict().get(ticker, None)
+        if holding is None:
+            logger.debug(f"No holding found for {ticker}. Skipping stop-loss check.")
+            return False
+        days_held = holding.get("days_held",0)+1
+        max_price = max(holding.get("max_price",0), price)
+        stop_loss_price = max_price * 0.97
+        tm.update_portfolio(ticker, days_held, max_price)
+        return (days_held > 60 and price < stop_loss_price) or days_held >= 150

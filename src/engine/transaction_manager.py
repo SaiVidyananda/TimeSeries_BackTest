@@ -32,17 +32,18 @@ class TransactionManager:
         """
         date = date or datetime.now().strftime("%Y-%m-%d")
         total_cost = quantity * price
-        logger.info("Buying %s: %d shares at ₹%.2f", ticker, quantity, price)
+        logger.debug("Buying %s: %d shares at ₹%.2f", ticker, quantity, price)
         if ticker in self.portfolio:
             pos = self.portfolio[ticker]
             new_qty = pos["quantity"] + quantity
             new_avg = ((pos["quantity"] * pos["avg_price"]) + total_cost) / new_qty
             self.portfolio[ticker] = {"ticker":ticker, "quantity": new_qty, "avg_price": new_avg, 
-                                      "date": pos["date"], "trade_id": pos["trade_id"]}
+                                      "date": pos["date"], "trade_id": pos["trade_id"], 
+                                      "days_held": pos.get("days_held", 0), "max_price": pos.get("max_price", price)}
         else:
             self.trade_id += 1
             trade_id = f"{ticker}-{self.trade_id}"
-            logger.info("New trade ID assigned: %s", trade_id)
+            logger.debug("New trade ID assigned: %s", trade_id)
             self.portfolio[ticker] = {"ticker":ticker, "quantity": quantity, "avg_price": price, 
                                       "date": date, "trade_id": trade_id}
         self._record_transaction("BUY", ticker, quantity, price, date, self.portfolio[ticker]["trade_id"])
@@ -68,17 +69,20 @@ class TransactionManager:
         self.portfolio[ticker]["quantity"] -= quantity
         if self.portfolio[ticker]["quantity"] == 0:
             del self.portfolio[ticker]
-        logger.info("Sold %s: %d shares at ₹%.2f", ticker, quantity, price)
         self._record_transaction("SELL", ticker, quantity, price, date, trade_id)
 
     def _record_transaction(self, action, ticker, quantity, price, date, trade_id=None):
         txn = {"action": action, "ticker": ticker, "quantity": quantity, "price": price, "date": date, "trade_id": trade_id}
         self.transactions.append(txn)
-        logger.info("Recorded transaction: %s", txn)
+        logger.debug("Recorded transaction: %s", txn)
 
     def get_portfolio(self):
         """Get the current portfolio as a DataFrame."""
         return pd.DataFrame(self.portfolio.values())if self.portfolio else pd.DataFrame(columns=["ticker", "quantity", "avg_price", "date", "trade_id"])
+
+    def get_portfolio_dict(self):
+        """Get the current portfolio as a DataFrame."""
+        return self.portfolio
 
     def get_transactions(self):
         """Get the list of recorded transactions."""
@@ -88,5 +92,10 @@ class TransactionManager:
         """Save transactions to a file."""
         df = pd.DataFrame(self.transactions)
         df.to_csv(filename, index=False)
-        logger.info("Transactions saved to %s", filename)
+        logger.debug("Transactions saved to %s", filename)
+
+    def update_portfolio(self, ticker, days_held, max_price):
+        """Update the portfolio with a new portfolio dictionary."""
+        self.portfolio[ticker]["days_held"] = days_held
+        self.portfolio[ticker]["max_price"] = max_price
 

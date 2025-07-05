@@ -49,11 +49,11 @@ class PositionSizer:
         if effective_cash <= 0:
             return 0
         current_portfolio = self.tm.get_portfolio()
-        num_positions = len(current_portfolio)
-        logger.info(current_portfolio)
-
+        num_positions = current_portfolio.shape[0]
+        logger.info(" slots filled, but ticker %d", num_positions)
         # Target weight per position
         slots = max(self.max_positions - num_positions, 0)
+        logger.info(" slots filled, but ticker %d, %d", num_positions, slots)
         if slots == 0:
             if ticker in current_portfolio.ticker.values:
                 logger.info("No slots available, but ticker %s is already owned. Using fixed amount sizing.", ticker)
@@ -62,4 +62,5 @@ class PositionSizer:
                 return 0
 
         quantity = int(fixed_amount // price)
+        logger.info(" slots filled, but ticker %d atlast %d", num_positions, slots)
         return max(quantity, 0)

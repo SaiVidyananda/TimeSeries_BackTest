@@ -10,7 +10,7 @@ from src.engine.transaction_manager import TransactionManager
 
 @pytest.fixture
 def fake_strategy():
-    def _strategy(date):
+    def _strategy(tm, date):
         if date == "2023-01-01":
             return (
                 [{"ticker": "AAPL", "price": 100.0}],  # buy
