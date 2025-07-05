@@ -51,7 +51,7 @@ def test_get_portfolio_returns_dataframe(tm):
     assert not df.empty
 
 def test_get_portfolio_returns_none_when_empty(tm):
-    assert tm.get_portfolio() is None
+    assert tm.get_portfolio().empty
 
 def test_get_transactions(tm):
     tm.buy("AAPL", 10, 150.0)
