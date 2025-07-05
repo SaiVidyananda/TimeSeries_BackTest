@@ -1,12 +1,19 @@
+"""# src/final.py
 
-from datetime import datetime
+This script serves as the main entry point for the portfolio valuation system.
+It initializes the data download, transaction management, and portfolio valuation processes.
+"""
+#from datetime import datetime
 
-import pandas as pd
-import yfinance as yf
+#import pandas as pd
+#import yfinance as yf
 
-from utils.data_handler import download_data, fill_missing
-from utils.decorator_utils import decorate_module_functions
-from utils.log_helper import handle_exceptions, log_function_call
+from src.engine.portfolio_valuator import PortfolioValuator
+from src.engine.transaction_manager import TransactionManager
+from src.utils.data_handler import download_data
+
+#from src.utils.decorator_utils import decorate_module_functions
+#from src.utils.log_helper import handle_exceptions, log_function_call
 
 tickers = [
     "ADANIENT.NS", "ADANIGREEN.NS", "ADANIPORTS.NS", "ADANIPOWER.NS", "AMBUJACEM.NS",
@@ -35,7 +42,7 @@ tickers = [
     "VOLTAS.NS", "WIPRO.NS", "ZEEL.NS"
 ]
 
-data = download_data(tickers, start="2015-01-01", end=None, interval="1d", cache=True) 
+data = download_data(tickers, start="2015-01-01", end=None, interval="1d", cache=True)
 print(f"Data shape: {data.shape}")
 print(data.head())
 print(data.loc["2025-07-01", "RELIANCE.NS"])
@@ -43,8 +50,6 @@ print(data.loc["2025-07-01", "SBIN.NS"])
 
 price_provider = lambda ticker, date: data.loc[date, ticker] if date in data.index else None
 
-from engine.portfolio_valuator import PortfolioValuator
-from engine.transaction_manager import TransactionManager
 
 transaction_manager = TransactionManager()
 

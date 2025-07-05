@@ -8,7 +8,8 @@ import pandas as pd
 
 from src.utils.log_helper import handle_exceptions, log_function_call, logger
 
-
+"""Class to manage transactions in a trading portfolio, including buying and selling stocks,
+ and maintaining a record of transactions."""
 class TransactionManager:
     def __init__(self):
         self.portfolio = {}  # ticker: {ticker, quantity, avg_price}
@@ -31,7 +32,6 @@ class TransactionManager:
         date = date or datetime.now().strftime("%Y-%m-%d")
         total_cost = quantity * price
         logger.info("Buying %s: %d shares at ₹%.2f", ticker, quantity, price)
-
         if ticker in self.portfolio:
             pos = self.portfolio[ticker]
             new_qty = pos["quantity"] + quantity
@@ -39,7 +39,6 @@ class TransactionManager:
             self.portfolio[ticker] = {"ticker":ticker, "quantity": new_qty, "avg_price": new_avg}
         else:
             self.portfolio[ticker] = {"ticker":ticker, "quantity": quantity, "avg_price": price}
-
         self._record_transaction("BUY", ticker, quantity, price, date)
 
     @log_function_call
@@ -57,14 +56,11 @@ class TransactionManager:
             ValueError: If not enough shares are available to sell.
         """
         date = date or datetime.now().strftime("%Y-%m-%d")
-
         if ticker not in self.portfolio or self.portfolio[ticker]["quantity"] < quantity:
             raise ValueError("Not enough shares to sell.")
-
         self.portfolio[ticker]["quantity"] -= quantity
         if self.portfolio[ticker]["quantity"] == 0:
             del self.portfolio[ticker]
-
         logger.info("Sold %s: %d shares at ₹%.2f", ticker, quantity, price)
         self._record_transaction("SELL", ticker, quantity, price, date)
 
@@ -74,9 +70,11 @@ class TransactionManager:
         logger.info("Recorded transaction: %s", txn)
 
     def get_portfolio(self):
+        """Get the current portfolio as a DataFrame."""
         return pd.DataFrame(self.portfolio.values())if self.portfolio else None
 
     def get_transactions(self):
+        """Get the list of recorded transactions."""
         return self.transactions
     
     def save_transactions(self, filename):
@@ -84,4 +82,4 @@ class TransactionManager:
         df = pd.DataFrame(self.transactions)
         df.to_csv(filename, index=False)
         logger.info("Transactions saved to %s", filename)
-        
+

@@ -1,7 +1,7 @@
 """
 Data handling utility using yfinance with logging and error decorators.
 """
-
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -70,6 +70,6 @@ def fill_missing(data, method="ffill"):
     """
     return data.fillna(method=method)
 
-import sys
+
 
 decorate_module_functions(module=sys.modules[__name__], decorators=[handle_exceptions, log_function_call])
