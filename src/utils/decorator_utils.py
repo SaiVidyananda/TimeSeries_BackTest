@@ -4,6 +4,7 @@
 import inspect
 import types
 
+
 def decorate_module_functions(module, decorators):
     """
     Apply decorators to all functions in a module.

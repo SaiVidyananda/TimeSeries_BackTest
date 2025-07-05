@@ -4,8 +4,8 @@ import types
 
 import pytest
 
-from src import handle_exceptions, log_function_call
 from src.utils.decorator_utils import decorate_module_functions
+from src.utils.log_helper import handle_exceptions, log_function_call
 
 
 # Apply both decorators to test them together and separately
