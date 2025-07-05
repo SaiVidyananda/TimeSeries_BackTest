@@ -33,7 +33,7 @@ def test_download_data_multiple_tickers(mock_download):
 
     # Multi-index structure like yfinance returns
     mock_download.return_value = pd.concat({
-        "Adj Close": df
+        "Close": df
     }, axis=1)
 
     result = download_data(["AAPL", "MSFT"], start="2020-01-01", end="2020-01-04", cache=False)
