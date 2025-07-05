@@ -14,6 +14,7 @@ class TransactionManager:
     def __init__(self):
         self.portfolio = {}  # ticker: {ticker, quantity, avg_price}
         self.transactions = []
+        self.trade_id = 0
 
     @log_function_call
     @handle_exceptions
@@ -36,10 +37,15 @@ class TransactionManager:
             pos = self.portfolio[ticker]
             new_qty = pos["quantity"] + quantity
             new_avg = ((pos["quantity"] * pos["avg_price"]) + total_cost) / new_qty
-            self.portfolio[ticker] = {"ticker":ticker, "quantity": new_qty, "avg_price": new_avg}
+            self.portfolio[ticker] = {"ticker":ticker, "quantity": new_qty, "avg_price": new_avg, 
+                                      "date": pos["date"], "trade_id": pos["trade_id"]}
         else:
-            self.portfolio[ticker] = {"ticker":ticker, "quantity": quantity, "avg_price": price}
-        self._record_transaction("BUY", ticker, quantity, price, date)
+            self.trade_id += 1
+            trade_id = f"{ticker}-{self.trade_id}"
+            logger.info("New trade ID assigned: %s", trade_id)
+            self.portfolio[ticker] = {"ticker":ticker, "quantity": quantity, "avg_price": price, 
+                                      "date": date, "trade_id": trade_id}
+        self._record_transaction("BUY", ticker, quantity, price, date, self.portfolio[ticker]["trade_id"])
 
     @log_function_call
     @handle_exceptions
@@ -56,22 +62,23 @@ class TransactionManager:
             ValueError: If not enough shares are available to sell.
         """
         date = date or datetime.now().strftime("%Y-%m-%d")
+        trade_id = self.portfolio[ticker]["trade_id"]
         if ticker not in self.portfolio or self.portfolio[ticker]["quantity"] < quantity:
             raise ValueError("Not enough shares to sell.")
         self.portfolio[ticker]["quantity"] -= quantity
         if self.portfolio[ticker]["quantity"] == 0:
             del self.portfolio[ticker]
         logger.info("Sold %s: %d shares at ₹%.2f", ticker, quantity, price)
-        self._record_transaction("SELL", ticker, quantity, price, date)
+        self._record_transaction("SELL", ticker, quantity, price, date, trade_id)
 
-    def _record_transaction(self, action, ticker, quantity, price, date):
-        txn = {"action": action, "ticker": ticker, "quantity": quantity, "price": price, "date": date}
+    def _record_transaction(self, action, ticker, quantity, price, date, trade_id=None):
+        txn = {"action": action, "ticker": ticker, "quantity": quantity, "price": price, "date": date, "trade_id": trade_id}
         self.transactions.append(txn)
         logger.info("Recorded transaction: %s", txn)
 
     def get_portfolio(self):
         """Get the current portfolio as a DataFrame."""
-        return pd.DataFrame(self.portfolio.values())if self.portfolio else None
+        return pd.DataFrame(self.portfolio.values())if self.portfolio else pd.DataFrame(columns=["ticker", "quantity", "avg_price", "date", "trade_id"])
 
     def get_transactions(self):
         """Get the list of recorded transactions."""
